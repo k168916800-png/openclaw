@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  codex-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wenfxl_codex_manager
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TZ=Asia/Shanghai
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/data/config.yaml
+    networks:
+      - codex-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 86400 --cleanup --include-restarting
+    networks:
+      - codex-network
+
+networks:
+  codex-network:
+    driver: bridge
